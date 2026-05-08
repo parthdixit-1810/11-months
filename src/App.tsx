@@ -142,9 +142,12 @@ function FloatingHearts() {
 }
 
 // --- Background Magic Particles ---
-function MagicParticles() {
+function MagicParticles({ yRange = [-50, 50] }: { yRange?: [number, number] }) {
+  const { scrollYProgress } = useScroll();
+  const y = useTransform(scrollYProgress, [0, 0.2], yRange);
+
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+    <motion.div style={{ y }} className="absolute inset-0 pointer-events-none overflow-hidden z-0">
       {[...Array(20)].map((_, i) => (
         <motion.div
           key={i}
@@ -180,7 +183,7 @@ function MagicParticles() {
           )}
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
@@ -312,6 +315,66 @@ function PetalTrail() {
         ))}
       </AnimatePresence>
     </div>
+  );
+}
+
+// --- Memory Card Component with Parallax ---
+function MemoryCard({ 
+  index, 
+  className = "", 
+  yRange = [0, 0], 
+  delay = 0, 
+  isVideo = false 
+}: { 
+  index: number, 
+  className?: string, 
+  yRange?: [number, number], 
+  delay?: number,
+  isVideo?: boolean
+}) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"]
+  });
+
+  const scrollY = useTransform(scrollYProgress, [0, 1], yRange);
+
+  return (
+    <motion.div 
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.8 }}
+      className={`group relative rounded-[48px] overflow-hidden border border-primary/5 shadow-2xl ${className}`}
+    >
+      <motion.div style={{ y: scrollY }} className="absolute inset-0 w-full h-[120%] -top-[10%]">
+        {isVideo ? (
+          <video 
+            src={MEMORIES[index].image} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+          />
+        ) : (
+          <img 
+            src={MEMORIES[index].image} 
+            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+          />
+        )}
+      </motion.div>
+
+      <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent p-12 flex flex-col justify-end">
+         <h3 className="text-4xl md:text-6xl font-serif text-white mb-4 leading-none tracking-tighter">{MEMORIES[index].title}</h3>
+         <div className="w-12 h-[1px] bg-accent mb-6 group-hover:w-24 transition-all duration-700" />
+         <AnimatePresence>
+            <p className="font-script text-2xl md:text-3xl text-accent leading-tight italic">{MEMORIES[index].desc}</p>
+         </AnimatePresence>
+      </div>
+    </motion.div>
   );
 }
 
@@ -489,14 +552,110 @@ function VoiceNoteSection() {
   );
 }
 
+// --- Quotes Carousel ---
+function QuotesSection({ currentQuote, setCurrentQuote }: { currentQuote: number, setCurrentQuote: React.Dispatch<React.SetStateAction<number>> }) {
+  const containerRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"]
+  });
+
+  const bgX = useTransform(scrollYProgress, [0, 1], ["-20%", "20%"]);
+
+  return (
+    <section ref={containerRef} className="py-60 px-6 bg-primary relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+         <motion.span 
+           style={{ x: bgX }}
+           className="absolute top-1/2 left-1/2 -translate-x-1/2 md:-translate-x-[40%] -translate-y-1/2 text-[45vw] font-serif opacity-[0.05] text-white italic leading-none whitespace-nowrap select-none"
+         >
+           Archives
+         </motion.span>
+      </div>
+
+      <div className="max-w-6xl mx-auto text-center relative z-10 px-8">
+        <span className="text-[10px] tracking-[1em] uppercase text-accent font-bold mb-16 block">Borrowed Sentences</span>
+        
+        <div className="relative min-h-[400px] flex items-center justify-center">
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={currentQuote}
+               initial={{ opacity: 0, scale: 0.95, y: 30 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 1.05, y: -30 }}
+               transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+               className="px-6 md:px-12 flex flex-col items-center"
+             >
+               <div className="flex justify-center gap-4 mb-20 opacity-30 scale-125">
+                  <Star className="text-accent fill-accent" size={14} />
+                  <Star className="text-accent fill-accent" size={14} />
+                  <Star className="text-accent fill-accent" size={14} />
+               </div>
+               
+               <motion.p 
+                 className="text-4xl md:text-8xl font-serif text-white leading-[1.05] mb-16 italic tracking-tighter text-balance"
+               >
+                  “{QUOTES[currentQuote].text}”
+               </motion.p>
+               
+               <div className="flex flex-col items-center gap-6">
+                  <div className="w-16 h-[1px] bg-accent" />
+                  <p className="font-script text-4xl text-accent italic opacity-80">— {QUOTES[currentQuote].author}</p>
+               </div>
+             </motion.div>
+           </AnimatePresence>
+        </div>
+
+        <div className="flex items-center justify-center gap-8 mt-24">
+           <button 
+              onClick={() => setCurrentQuote(prev => (prev - 1 + QUOTES.length) % QUOTES.length)}
+              className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-white/5 transition-all group active:scale-90"
+           >
+             <ChevronLeft className="group-hover:-translate-x-1 transition-transform" />
+           </button>
+           
+           <div className="flex gap-4 items-center">
+             {QUOTES.map((_, i) => (
+               <div 
+                 key={i} 
+                 className={`h-[2px] transition-all duration-700 ${currentQuote === i ? 'w-20 bg-accent' : 'w-4 bg-white/10'}`} 
+               />
+             ))}
+           </div>
+
+           <button 
+              onClick={() => setCurrentQuote(prev => (prev + 1) % QUOTES.length)}
+              className="w-16 h-16 rounded-full border border-accent flex items-center justify-center text-accent hover:bg-accent hover:text-white transition-all group active:scale-90 shadow-[0_0_30px_rgba(251,113,133,0.1)]"
+           >
+             <ChevronRight className="group-hover:translate-x-1 transition-transform" />
+           </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // --- Anniversary Tribute Section ---
 function AnniversarySection() {
+  const containerRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"]
+  });
+
+  const textY = useTransform(scrollYProgress, [0, 1], [-150, 150]);
+  const videoY = useTransform(scrollYProgress, [0, 1], [50, -50]);
+  const videoRotate = useTransform(scrollYProgress, [0, 1], [-5, 5]);
+
   return (
-    <section className="py-60 px-6 bg-bg-cream overflow-hidden border-t border-primary/5 relative">
+    <section ref={containerRef} className="py-60 px-6 bg-bg-cream overflow-hidden border-t border-primary/5 relative">
       {/* Decorative background text */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none opacity-[0.03] whitespace-nowrap">
+      <motion.div 
+        style={{ y: textY }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none opacity-[0.03] whitespace-nowrap"
+      >
         <span className="text-[30vw] font-serif italic text-primary">Anniversary</span>
-      </div>
+      </motion.div>
 
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-24">
@@ -523,8 +682,9 @@ function AnniversarySection() {
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-            whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+            style={{ y: videoY, rotate: videoRotate }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="lg:w-1/2 w-full aspect-[9/16] max-w-md mx-auto relative group"
           >
@@ -892,91 +1052,19 @@ export default function App() {
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 auto-rows-[400px] md:auto-rows-[500px]">
              {/* Large Portrait - Memory 0: Jerseys */}
-             <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               className="md:col-span-4 md:row-span-2 group relative rounded-[48px] overflow-hidden border border-primary/5 shadow-2xl"
-             >
-                <img src={MEMORIES[0].image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/20 to-transparent p-12 flex flex-col justify-end">
-                   <h3 className="text-4xl md:text-6xl font-serif text-white mb-4 leading-none tracking-tighter">{MEMORIES[0].title}</h3>
-                   <div className="w-12 h-[1px] bg-accent mb-6 group-hover:w-24 transition-all duration-700" />
-                   <p className="font-script text-2xl md:text-3xl text-accent leading-tight italic">{MEMORIES[0].desc}</p>
-                </div>
-             </motion.div>
+             <MemoryCard index={0} className="md:col-span-4 md:row-span-2" yRange={[-40, 40]} />
 
              {/* Small Square 1 - Memory 1: Pizza Hut */}
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.95 }}
-               whileInView={{ opacity: 1, scale: 1 }}
-               viewport={{ once: true }}
-               transition={{ delay: 0.1 }}
-               className="md:col-span-4 group relative rounded-[48px] overflow-hidden shadow-xl"
-             >
-                <img src={MEMORIES[1].image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:rotate-2 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-black/60 p-10 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-all duration-700 translate-y-4 group-hover:translate-y-0">
-                   <h3 className="text-3xl font-serif text-white mb-2">{MEMORIES[1].title}</h3>
-                   <p className="font-script text-xl text-accent italic">{MEMORIES[1].desc}</p>
-                </div>
-             </motion.div>
+             <MemoryCard index={1} className="md:col-span-4" yRange={[20, -20]} delay={0.1} />
 
              {/* Small Square 2 - Memory 2: Selfie */}
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.95 }}
-               whileInView={{ opacity: 1, scale: 1 }}
-               viewport={{ once: true }}
-               transition={{ delay: 0.2 }}
-               className="md:col-span-4 group relative rounded-[48px] overflow-hidden shadow-xl"
-             >
-                <img src={MEMORIES[2].image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:-rotate-2 group-hover:scale-110" />
-                <div className="absolute inset-x-0 bottom-0 p-12 bg-gradient-to-t from-black/80 to-transparent">
-                   <h3 className="text-3xl font-serif text-white tracking-tighter italic">{MEMORIES[2].title}</h3>
-                </div>
-             </motion.div>
+             <MemoryCard index={2} className="md:col-span-4" yRange={[-30, 30]} delay={0.2} />
 
              {/* Small Square 3 - Memory 4: Cable Bridge */}
-             <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               transition={{ delay: 0.25 }}
-               className="md:col-span-4 group relative rounded-[48px] overflow-hidden shadow-xl"
-             >
-                <video 
-                  src={MEMORIES[4].image} 
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
-                />
-                <div className="absolute inset-0 bg-primary/60 group-hover:bg-primary/20 transition-colors duration-700" />
-                <div className="absolute inset-x-0 bottom-0 p-12 translate-y-4 group-hover:translate-y-0 transition-transform opacity-0 group-hover:opacity-100 duration-500 bg-primary/95 backdrop-blur-xl border-t border-white/5">
-                   <h3 className="text-3xl font-serif text-white mb-3 tracking-tighter">{MEMORIES[4].title}</h3>
-                   <p className="font-script text-2xl text-accent leading-snug italic">{MEMORIES[4].desc}</p>
-                </div>
-             </motion.div>
+             <MemoryCard index={4} className="md:col-span-4" isVideo yRange={[40, -40]} delay={0.25} />
 
              {/* Ultra Wide Bottom - Memory 3: Mirror Kiss */}
-             <motion.div 
-               initial={{ opacity: 0, y: 20 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               transition={{ delay: 0.3 }}
-               className="md:col-span-8 group relative rounded-[48px] overflow-hidden shadow-2xl"
-             >
-                <img src={MEMORIES[3].image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/40 to-transparent p-16">
-                   <div className="h-full flex items-center justify-between">
-                     <div className="max-w-lg">
-                        <h3 className="text-5xl md:text-7xl font-serif text-white mb-6 leading-none tracking-tighter italic">{MEMORIES[3].title}</h3>
-                        <p className="font-script text-3xl md:text-4xl text-accent leading-tight italic">{MEMORIES[3].desc}</p>
-                     </div>
-                     <span className="text-white/5 font-serif text-[12rem] italic group-hover:text-accent/10 transition-colors hidden lg:block select-none leading-none -mr-20">Forever.</span>
-                   </div>
-                </div>
-             </motion.div>
+             <MemoryCard index={3} className="md:col-span-8" yRange={[-50, 50]} delay={0.3} />
           </div>
         </div>
       </section>
@@ -1019,71 +1107,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* --- QUOTES CAROUSEL --- */}
-      <section className="py-60 px-6 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-           <span className="absolute top-1/2 left-1/2 -translate-x-1/2 md:-translate-x-[40%] -translate-y-1/2 text-[45vw] font-serif opacity-[0.05] text-white italic leading-none whitespace-nowrap select-none">Archives</span>
-        </div>
-
-        <div className="max-w-6xl mx-auto text-center relative z-10 px-8">
-          <span className="text-[10px] tracking-[1em] uppercase text-accent font-bold mb-16 block">Borrowed Sentences</span>
-          
-          <div className="relative min-h-[400px] flex items-center justify-center">
-             <AnimatePresence mode="wait">
-               <motion.div
-                 key={currentQuote}
-                 initial={{ opacity: 0, scale: 0.95, y: 30 }}
-                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                 exit={{ opacity: 0, scale: 1.05, y: -30 }}
-                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                 className="px-6 md:px-12 flex flex-col items-center"
-               >
-                 <div className="flex justify-center gap-4 mb-20 opacity-30 scale-125">
-                    <Star className="text-accent fill-accent" size={14} />
-                    <Star className="text-accent fill-accent" size={14} />
-                    <Star className="text-accent fill-accent" size={14} />
-                 </div>
-                 
-                 <motion.p 
-                   className="text-4xl md:text-8xl font-serif text-white leading-[1.05] mb-16 italic tracking-tighter text-balance"
-                 >
-                    “{QUOTES[currentQuote].text}”
-                 </motion.p>
-                 
-                 <div className="flex flex-col items-center gap-6">
-                    <div className="w-16 h-[1px] bg-accent" />
-                    <p className="font-script text-4xl text-accent italic opacity-80">— {QUOTES[currentQuote].author}</p>
-                 </div>
-               </motion.div>
-             </AnimatePresence>
-          </div>
-
-          <div className="flex items-center justify-center gap-8 mt-24">
-             <button 
-                onClick={() => setCurrentQuote(prev => (prev - 1 + QUOTES.length) % QUOTES.length)}
-                className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center text-white hover:bg-white/5 transition-all group active:scale-90"
-             >
-               <ChevronLeft className="group-hover:-translate-x-1 transition-transform" />
-             </button>
-             
-             <div className="flex gap-4 items-center">
-               {QUOTES.map((_, i) => (
-                 <div 
-                   key={i} 
-                   className={`h-[2px] transition-all duration-700 ${currentQuote === i ? 'w-20 bg-accent' : 'w-4 bg-white/10'}`} 
-                 />
-               ))}
-             </div>
-
-             <button 
-                onClick={() => setCurrentQuote(prev => (prev + 1) % QUOTES.length)}
-                className="w-16 h-16 rounded-full border border-accent flex items-center justify-center text-accent hover:bg-accent hover:text-white transition-all group active:scale-90 shadow-[0_0_30px_rgba(251,113,133,0.1)]"
-             >
-               <ChevronRight className="group-hover:translate-x-1 transition-transform" />
-             </button>
-          </div>
-        </div>
-      </section>
+      <QuotesSection currentQuote={currentQuote} setCurrentQuote={setCurrentQuote} />
 
       <VoiceNoteSection />
 
