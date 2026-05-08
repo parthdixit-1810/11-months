@@ -1,0 +1,6 @@
+{
+  "name": "To Anshi, With Love",
+  "description": "A personal, heartfelt apology and tribute to our beautiful one day together.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}
