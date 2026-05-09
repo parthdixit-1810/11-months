@@ -396,77 +396,81 @@ function MemoryCard({
 }
 
 // --- Voice Note Section ---
+const SONGS = [
+  {
+    file: '/apology.mp3',
+    title: 'Apology Message',
+    artist: 'Parth'
+  },
+  {
+    file: '/Raabta Agent Vinod 320 Kbps.mp3',
+    title: 'Raabta',
+    artist: 'Arijit Singh'
+  },
+  {
+    file: '/Tujhe Kitna Chahne Lage Kabir Singh 320 Kbps.mp3',
+    title: 'Tujhe Kitna Chahne Lage',
+    artist: 'Arijit Singh'
+  },
+  {
+    file: '/Tum Se Hi Jab We Met 320 Kbps.mp3',
+    title: 'Tum Se Hi',
+    artist: 'Mohit Chauhan'
+  }
+];
+
 function VoiceNoteSection() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   
-  const songs = [
-    {
-      file: '/apology.mp3',
-      title: 'Apology Message',
-      artist: 'Parth'
-    },
-    {
-      file: '/Raabta Agent Vinod 320 Kbps.mp3',
-      title: 'Raabta Agent',
-      artist: 'Vinod'
-    },
-    {
-      file: '/Tujhe Kitna Chahne Lage Kabir Singh 320 Kbps.mp3',
-      title: 'Tujhe Kitna',
-      artist: 'Kabir Singh'
-    }
-  ];
-  
-  const [audio, setAudio] = useState(() => new Audio(songs[0].file));
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [audio, setAudio] = useState(() => new Audio(SONGS[0].file));
 
   const transcript = "Hey Anshi... I've been trying to find the right words to say this, but I think hearing my voice might be better. I'm so sorry for everything that happened. That day was supposed to be about us, and I let my reactions get in the way. You did so much for me - the food, the ride, the planning - and I didn't appreciate it the way I should have. I love you more than words can say, and I promise to be better. For you, for us. Always.";
 
+  const handleEnded = () => {
+    setIsPlaying(false);
+  };
+
   useEffect(() => {
     const audioElement = audio;
-    
-    const handleEnded = () => {
-      setIsPlaying(false);
-    };
-
-  const nextSong = () => {
-    const nextIndex = (currentSongIndex + 1) % songs.length;
-    switchSong(nextIndex);
-  };
-
-  const prevSong = () => {
-    const prevIndex = currentSongIndex === 0 ? songs.length - 1 : currentSongIndex - 1;
-    switchSong(prevIndex);
-  };
-
     audioElement.addEventListener('ended', handleEnded);
-    
     return () => {
       audioElement.removeEventListener('ended', handleEnded);
     };
   }, [audio]);
+
+  const switchSong = (index: number) => {
+    if (audio) {
+      audio.pause();
+      audio.removeEventListener('ended', handleEnded);
+    }
+    const newAudio = new Audio(SONGS[index].file);
+    setAudio(newAudio);
+    setCurrentSongIndex(index);
+    setIsPlaying(false);
+  };
+
+  const nextSong = () => {
+    switchSong((currentSongIndex + 1) % SONGS.length);
+  };
+
+  const prevSong = () => {
+    switchSong(currentSongIndex === 0 ? SONGS.length - 1 : currentSongIndex - 1);
+  };
 
   const playRecording = () => {
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
     } else {
-      audio.play();
-      setIsPlaying(true);
+      audio.play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.error('Audio play failed:', err);
+          setIsPlaying(false);
+        });
     }
-  };
-
-  const switchSong = (index: number) => {
-    const newAudio = new Audio(songs[index].file);
-    if (audio) {
-      audio.pause();
-      audio.removeEventListener('ended', handleEnded);
-    }
-    setAudio(newAudio);
-    setCurrentSongIndex(index);
-    setIsPlaying(false);
   };
 
   return (
@@ -493,8 +497,8 @@ function VoiceNoteSection() {
            <div className="flex flex-col items-center gap-12 relative z-10">
                {/* Current Song Display */}
                <div className="text-center mb-6">
-                 <h3 className="text-xl font-serif text-primary mb-2">{songs[currentSongIndex].title}</h3>
-                 <p className="text-sm text-accent">{songs[currentSongIndex].artist}</p>
+                 <h3 className="text-xl font-serif text-primary mb-2">{SONGS[currentSongIndex].title}</h3>
+                 <p className="text-sm text-accent">{SONGS[currentSongIndex].artist}</p>
                </div>
                
                {/* Song Navigation */}
@@ -566,12 +570,10 @@ function VoiceNoteSection() {
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    </AnimatePresence>
                     <div className="w-16 h-[1px] bg-primary/10" />
                  </div>
            </div>
         </div>
-      </div>
     </section>
   );
 }
@@ -836,6 +838,123 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+const MUSIC_TRACKS = [
+  { file: '/Tujhe Kitna Chahne Lage Kabir Singh 320 Kbps.mp3', title: 'Tujhe Kitna Chahne Lage', artist: 'Arijit Singh' },
+  { file: '/Raabta Agent Vinod 320 Kbps.mp3', title: 'Raabta', artist: 'Arijit Singh' },
+  { file: '/Tum Se Hi Jab We Met 320 Kbps.mp3', title: 'Tum Se Hi', artist: 'Mohit Chauhan' },
+];
+
+function MusicSection() {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio, setAudio] = useState(() => new Audio(MUSIC_TRACKS[0].file));
+
+  const handleEnded = () => setIsPlaying(false);
+
+  useEffect(() => {
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [audio]);
+
+  const selectTrack = (idx: number) => {
+    audio.pause();
+    audio.removeEventListener('ended', handleEnded);
+    const next = new Audio(MUSIC_TRACKS[idx].file);
+    setAudio(next);
+    setCurrentIdx(idx);
+    setIsPlaying(false);
+    next.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+  };
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    }
+  };
+
+  return (
+    <section className="py-40 px-6 bg-white overflow-hidden relative">
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-32">
+        <div className="lg:w-1/2 text-center lg:text-left">
+          <span className="font-script text-3xl text-accent mb-6 block">press play, my love</span>
+          <h2 className="text-6xl md:text-8xl font-serif text-primary mb-12 tracking-tight leading-[0.9]">A song for <br/><span className="italic">every version</span> of you.</h2>
+          <div className="flex flex-col gap-8">
+            <p className="font-sans text-xl text-primary/40 leading-relaxed max-w-xl">
+              There are moments when words fail me, and that's when I turn to these melodies. They hold the weight of everything I want to say to you.
+            </p>
+            <div className="flex items-center justify-center lg:justify-start gap-4">
+              <Music className="text-accent animate-pulse" size={32} />
+              <span className="font-script text-3xl text-primary/80">Listening is like hearing my own heart speak.</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:w-1/2 w-full">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-accent/20 blur-[80px] opacity-0 group-hover:opacity-40 transition-opacity duration-700" />
+            <div className="bg-bg-cream/40 p-12 md:p-16 rounded-[64px] border border-primary/5 shadow-[0_40px_100px_rgba(50,10,17,0.05)] relative z-10 backdrop-blur-xl">
+              <div className="aspect-square bg-primary-light rounded-[48px] overflow-hidden relative mb-12 cursor-pointer shadow-inner" onClick={togglePlay}>
+                <img src="/Pasted Graphic 12.png" className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-1000" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                    className={`w-28 h-28 text-white rounded-full flex items-center justify-center shadow-2xl pl-2 ring-12 ring-accent/10 transition-colors ${isPlaying ? 'bg-red-500' : 'bg-accent'}`}
+                  >
+                    {isPlaying ? <Square size={40} fill="currentColor" /> : <Play size={44} fill="currentColor" />}
+                  </motion.button>
+                </div>
+                <div className={`absolute bottom-12 left-1/2 -translate-x-1/2 flex items-end gap-1 h-12 transition-opacity ${isPlaying ? 'opacity-100' : 'opacity-30'}`}>
+                  {[...Array(12)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      animate={isPlaying ? { height: [12, 48, 12] } : { height: 12 }}
+                      transition={{ duration: 1 + Math.random(), repeat: Infinity, ease: "easeInOut", delay: Math.random() }}
+                      className="w-1 bg-white/30 rounded-full"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className="text-3xl font-serif text-primary text-center mb-8">{MUSIC_TRACKS[currentIdx].title}</h3>
+                <div className="flex flex-col gap-4">
+                  {MUSIC_TRACKS.slice(1).map((track, i) => {
+                    const idx = i + 1;
+                    const active = currentIdx === idx;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => selectTrack(idx)}
+                        className={`flex items-center gap-6 p-8 rounded-[32px] bg-white border cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1 ${active ? 'border-accent shadow-md' : 'border-primary/5 hover:border-accent'} ${active ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                      >
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${active ? 'bg-accent text-white' : 'bg-bg-cream text-accent'}`}>
+                          {active && isPlaying ? <Volume2 size={24} /> : <Music size={24} />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xl font-serif text-primary">{track.title}</p>
+                          <p className="text-primary/30 text-[10px] uppercase tracking-widest font-bold mt-1">{track.artist}</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-full border border-primary/5 flex items-center justify-center">
+                          {active && isPlaying ? <Square size={14} fill="currentColor" className="text-accent" /> : <Play size={14} fill="currentColor" className="text-accent" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1135,83 +1254,7 @@ export default function App() {
       <AnniversarySection />
 
       {/* --- MUSIC SECTION --- */}
-      <section className="py-40 px-6 bg-white overflow-hidden relative">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-32">
-           <div className="lg:w-1/2 text-center lg:text-left">
-              <span className="font-script text-3xl text-accent mb-6 block">press play, my love</span>
-              <h2 className="text-6xl md:text-8xl font-serif text-primary mb-12 tracking-tight leading-[0.9]">A song for <br/><span className="italic">every version</span> of you.</h2>
-              <div className="flex flex-col gap-8">
-                 <p className="font-sans text-xl text-primary/40 leading-relaxed max-w-xl">
-                    There are moments when words fail me, and that's when I turn to these melodies. They hold the weight of everything I want to say to you.
-                 </p>
-                 <div className="flex items-center justify-center lg:justify-start gap-4">
-                    <Music className="text-accent h animate-pulse" size={32} />
-                    <span className="font-script text-3xl text-primary/80">Listening is like hearing my own heart speak.</span>
-                 </div>
-              </div>
-           </div>
-
-           <div className="lg:w-1/2 w-full">
-              <div className="relative group">
-                 <div className="absolute inset-0 bg-accent/20 blur-[80px] opacity-0 group-hover:opacity-40 transition-opacity duration-700" />
-                 
-                 <div className="bg-bg-cream/40 p-12 md:p-16 rounded-[64px] border border-primary/5 shadow-[0_40px_100px_rgba(50,10,17,0.05)] relative z-10 backdrop-blur-xl">
-                    <div className="aspect-square bg-primary-light rounded-[48px] overflow-hidden relative mb-12 group cursor-pointer shadow-inner">
-                       <img src="/input_file_0.svg" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-1000" />
-                       <div className="absolute inset-0 flex items-center justify-center">
-                          <motion.button 
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="w-28 h-28 bg-accent text-white rounded-full flex items-center justify-center shadow-2xl pl-2 ring-12 ring-accent/10"
-                          >
-                             <Play size={44} fill="currentColor" />
-                          </motion.button>
-                       </div>
-                       
-                       {/* Animated Waveform Wrapper */}
-                       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-end gap-1 h-12">
-                          {[...Array(12)].map((_, i) => (
-                            <motion.div
-                              key={i}
-                              animate={{ height: [12, 48, 12] }}
-                              transition={{ duration: 1 + Math.random(), repeat: Infinity, ease: "easeInOut", delay: Math.random() }}
-                              className="w-1 bg-white/30 rounded-full"
-                            />
-                          ))}
-                       </div>
-                    </div>
-
-                    <div className="space-y-6">
-                       <h3 className="text-3xl font-serif text-primary text-center mb-8">Tujhe Kitna Chahne Lage</h3>
-                       <div className="flex flex-col gap-4">
-                          <div className="flex items-center gap-6 p-8 rounded-[32px] bg-white border border-primary/5 group/track hover:border-accent transition-all hover:shadow-lg hover:-translate-y-1">
-                             <div className="w-14 h-14 bg-bg-cream rounded-2xl flex items-center justify-center text-accent group-hover/track:bg-accent group-hover/track:text-white transition-colors">
-                                <Music size={24} />
-                             </div>
-                             <div className="flex-1">
-                                <p className="text-xl font-serif text-primary group-hover/track:translate-x-1 transition-transform">Raabta</p>
-                                <p className="text-primary/30 text-[10px] uppercase tracking-widest font-bold mt-1">Arijit Singh</p>
-                             </div>
-                             <button className="w-10 h-10 rounded-full border border-primary/5 flex items-center justify-center opacity-0 group-hover/track:opacity-100 transition-opacity">
-                                <ChevronRight size={16} />
-                             </button>
-                          </div>
-                          <div className="flex items-center gap-6 p-8 rounded-[32px] bg-white border border-primary/5 group/track hover:border-accent transition-all hover:shadow-lg hover:-translate-y-1 opacity-60 hover:opacity-100">
-                             <div className="w-14 h-14 bg-bg-cream rounded-2xl flex items-center justify-center text-accent group-hover/track:bg-accent group-hover/track:text-white transition-colors">
-                                <Volume2 size={24} />
-                             </div>
-                             <div className="flex-1">
-                                <p className="text-xl font-serif text-primary">Tum Se Hi</p>
-                                <p className="text-primary/30 text-[10px] uppercase tracking-widest font-bold mt-1">Mohit Chauhan</p>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </div>
-      </section>
+      <MusicSection />
 
       {/* --- FORGIVENESS BUTTON --- */}
       <section className="py-60 px-6 text-center bg-bg-cream relative overflow-hidden">
